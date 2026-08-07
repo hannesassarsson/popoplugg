@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PolisAkademin – Plugga polisjuridik</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            police: { 400:'#599eff', 500:'#3378ff', 600:'#1a55f5', 700:'#1440e1' }
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    .card { background: rgba(15,23,42,0.85); border: 1px solid #1e293b; border-radius: 1rem; }
+    .card-hover:hover { border-color: rgba(51,120,255,0.4); box-shadow: 0 0 30px rgba(51,120,255,0.08); }
+    .btn-primary { background: #1a55f5; color: white; font-weight: 600; padding: 0.6rem 1.1rem; border-radius: 0.75rem; transition: all .15s; }
+    .btn-primary:hover { background: #3378ff; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-secondary { background: #1e293b; color: #e2e8f0; font-weight: 500; padding: 0.6rem 1.1rem; border-radius: 0.75rem; border: 1px solid #334155; }
+    .btn-secondary:hover { background: #334155; }
+    .input-field { width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; padding: 0.65rem 1rem; color: #f1f5f9; }
+    .input-field:focus { outline: none; border-color: #3378ff; box-shadow: 0 0 0 2px rgba(51,120,255,0.25); }
+    .progress-bar { height: 0.5rem; background: #1e293b; border-radius: 9999px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg,#1a55f5,#599eff); border-radius: 9999px; transition: width .5s; }
+    .fade-in { animation: fadeIn .3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .slide-in { animation: slideIn .25s ease-out; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useCallback } = React;
+
+    // ========== DATA ==========
+    const LAWS = [
+      {
+        id: 'polislagen', name: 'Polislagen (1984:387)', short: 'PL', color: 'police',
+        desc: 'Grundläggande lag för polisens uppgifter, befogenheter och skyldigheter.',
+        mistakes: ['Blandar PL 10 § och 13 §', 'Glömmer proportionalitet', 'Använder PL 19 § utan laga grund'],
+        paragraphs: [
+          { id: 'pl-1', num: '1 §', title: 'Polisens uppgifter', text: 'Till polisens uppgifter hör att förebygga, förhindra och upptäcka brottslig verksamhet och andra störningar av den allmänna ordningen eller säkerheten, att övervaka den allmänna ordningen och säkerheten, hindra störningar därav samt att ingripa när sådana har inträffat, att bedriva spaning och utredning i fråga om brott som hör under allmänt åtal, att lämna allmänheten skydd, upplysningar och annan hjälp, när sådant bistånd lämpligen kan ges av polisen, att fullgöra den verksamhet som ankommer på polisen enligt särskilda bestämmelser.', explanation: 'Grunden för all polisverksamhet. Fem huvuduppgifter: brottsförebyggande, ordningshållning, utredning, hjälp till allmänheten och särskilda uppgifter.', examples: ['Patrullering för att förebygga', 'Ingripa vid ordningsstörning', 'Hjälpa förvirrad person'], tips: ['Använd som utgångspunkt vid motivering', 'Hjälp till allmänheten är lagstadgat'] },
+          { id: 'pl-10', num: '10 §', title: 'Våldsanvändning', text: 'En polisman får, i den mån andra medel är otillräckliga och det med hänsyn till omständigheterna är försvarligt, använda våld för att genomföra en tjänsteåtgärd, om 1. han möts med våld eller hot om våld, 2. någon som skall omhändertas... försöker undkomma eller polismannen annars möts av motstånd, 3. det är fråga om att avvärja en straffbelagd handling eller en fara för liv, hälsa eller värdefull egendom...', explanation: 'Våld får användas när andra medel är otillräckliga OCH det är försvarligt. Punkterna 1–6 anger situationer. Alltid proportionalitet.', examples: ['Motstånd vid omhändertagande', 'Avvärja pågående våldsbrott', 'Bereda tillträde vid livsfara'], tips: ['Dokumentera alltid', 'Minsta möjliga våld', 'Dialog först'] },
+          { id: 'pl-13', num: '13 §', title: 'Omhändertagande för ordning', text: 'Om någon genom sitt uppträdande stör den allmänna ordningen eller utgör en omedelbar fara för denna, får en polisman, när det är nödvändigt för att ordningen skall kunna upprätthållas, omhänderta honom. Om det med hänsyn till omständigheterna är lämpligare, får polismannen i stället avvisa eller avlägsna honom från området eller platsen.', explanation: 'Klassisk paragraf för ordningsstörningar. Kräver störning eller omedelbar fara. Avvisa/avlägsna först. Omhändertagande är sista utväg. Max 6 timmar (16 §).', examples: ['Berusad som skriker i centrum', 'Person som vägrar lämna område', 'Aggressiv person utanför krog'], tips: ['Börja med avvisning', 'Dokumentera varför omhändertagande behövdes', 'Max 6 h'] },
+          { id: 'pl-19', num: '19 §', title: 'Kroppsvisitation', text: 'En polisman får kroppsvisitera en person 1. i samband med att personen omhändertas enligt 11 eller 13 § eller gripas, 2. för att söka efter vapen eller andra farliga föremål, om det finns särskild anledning att anta att personen bär sådana föremål och det är försvarligt, 3. för att söka efter föremål som kan förverkas...', explanation: 'Punkt 1: i samband med frihetsberövande. Punkt 2: farliga föremål (särskild anledning). Punkt 3: förverkbara föremål.', examples: ['Visitation vid PL 13-omhändertagande', 'Söka efter kniv', 'Söka efter stöldgods'], tips: ['Motivera grunden', 'Respektera integritet', 'Dokumentera fynd'] },
+        ]
+      },
+      {
+        id: 'brottsbalken', name: 'Brottsbalken (1962:700)', short: 'BrB', color: 'red',
+        desc: 'Definierar brott och påföljder.',
+        mistakes: ['Blandar uppsåt och oaktsamhet', 'Glömmer nödvärn', 'Fel bedömning ringa/grovt'],
+        paragraphs: [
+          { id: 'brb-3-5', num: '3 kap. 5 §', title: 'Misshandel', text: 'Den som tillfogar en annan person kroppsskada, sjukdom eller smärta eller försätter honom eller henne i vanmakt eller något annat sådant tillstånd, döms för misshandel till fängelse i högst två år eller, om brottet är ringa, till böter eller fängelse i högst sex månader.', explanation: 'Kräver uppsåt att tillfoga skada, sjukdom, smärta eller vanmakt. Ringa kan vara en örfil.', examples: ['Slag som ger blåmärke', 'Knuff som orsakar fall', 'Örfil (ofta ringa)'], tips: ['Dokumentera skador', 'Bedöm uppsåt', 'Överväg nödvärn'] },
+          { id: 'brb-8-1', num: '8 kap. 1 §', title: 'Stöld', text: 'Den som olovligen tager vad annan tillhör med uppsåt att tillägna sig det, döms, om tillgreppet innebär skada, för stöld till fängelse i högst två år.', explanation: 'Olovligt tagande + uppsåt att tillägna sig + skada. Skillnad mot snatteri: värdet.', examples: ['Ta mobil från bord', 'Stjäla cykel'], tips: ['Värde påverkar snatteri/stöld', 'Uppsåt måste finnas'] },
+        ]
+      },
+      {
+        id: 'lob', name: 'LOB (1976:511)', short: 'LOB', color: 'amber',
+        desc: 'Omhändertagande av berusade personer för deras egen säkerhet.',
+        mistakes: ['Omhändertar utan tillräcklig berusning', 'Glömmer underrätta anhöriga'],
+        paragraphs: [
+          { id: 'lob-1', num: '1 §', title: 'Omhändertagande av berusad', text: 'Den som anträffas så berusad av alkoholdrycker eller annat berusningsmedel att han inte kan ta hand om sig själv eller utgör en fara för sig själv eller för någon annan, får omhändertas av en polisman.', explanation: 'Kräver att personen är så berusad att hen inte kan ta hand om sig själv eller utgör fara. Inte bara "lite full". Skyddsåtgärd, max 8 h.', examples: ['Sover i snön', 'Vinglar i trafiken', 'Hotar andra i berusning'], tips: ['Bedöm berusningsgrad noga', 'Underrätta anhöriga', 'Max 8 h'] },
+        ]
+      },
+      {
+        id: 'lvu', name: 'LVU (1990:52)', short: 'LVU', color: 'emerald',
+        desc: 'Tvångsvård av unga under 18 (ibland 20) år.',
+        mistakes: ['Blandar LVU och LPT', 'Fel bedömning av påtaglig risk'],
+        paragraphs: [
+          { id: 'lvu-2', num: '2 §', title: 'Miljöfallen', text: 'Vård skall beslutas om det på grund av fysisk eller psykisk misshandel, otillbörligt utnyttjande, brister i omsorgen eller något annat förhållande i hemmet finns en påtaglig risk för att den unges hälsa eller utveckling skadas.', explanation: 'Brister i hemmet. Kräver påtaglig risk för skada.', examples: ['Våld i hemmet', 'Föräldrar som missbrukar'], tips: ['Dokumentera observationer', 'Samverka med socialtjänsten', 'Polisen kan omhänderta enligt 6 §'] },
+          { id: 'lvu-3', num: '3 §', title: 'Beteendefallen', text: 'Vård skall också beslutas om den unge utsätter sin hälsa eller utveckling för en påtaglig risk att skadas genom missbruk av beroendeframkallande medel, brottslig verksamhet eller något annat socialt nedbrytande beteende.', explanation: 'Den unges eget beteende: missbruk, brott, socialt nedbrytande.', examples: ['Allvarligt narkotikamissbruk', 'Upprepad brottslighet'], tips: ['Påtaglig risk – inte bara risk'] },
+        ]
+      },
+      {
+        id: 'lpt', name: 'LPT (1991:1128)', short: 'LPT', color: 'violet',
+        desc: 'Psykiatrisk tvångsvård.',
+        mistakes: ['Blandar LPT och LOB', 'Glömmer kravet på allvarlig psykisk störning'],
+        paragraphs: [
+          { id: 'lpt-3', num: '3 §', title: 'Förutsättningar för tvångsvård', text: 'Tvångsvård får ges endast om patienten lider av en allvarlig psykisk störning och på grund av sitt psykiska tillstånd och sina personliga förhållanden i övrigt har ett oundgängligt behov av psykiatrisk vård, som inte kan tillgodoses på annat sätt... En förutsättning är att patienten motsätter sig vården eller att det till följd av patientens psykiska tillstånd finns grundad anledning att anta att vården inte kan ges med patientens samtycke.', explanation: 'Tre krav: 1) allvarlig psykisk störning 2) oundgängligt vårdbehov 3) motsätter sig eller kan inte samtycka.', examples: ['Psykos med fara', 'Allvarlig depression med suicidrisk'], tips: ['Polisen transporterar ofta', 'Läkare beslutar vårdintyg'] },
+        ]
+      },
+      {
+        id: 'knivlagen', name: 'Knivlagen (1988:254)', short: 'KnivL', color: 'rose',
+        desc: 'Förbud mot knivar och farliga föremål på offentliga platser.',
+        mistakes: ['Glömmer undantag för arbete/fritid'],
+        paragraphs: [
+          { id: 'kniv-1', num: '1 §', title: 'Förbud mot knivar m.m.', text: 'Knivar, andra stick- och skärvapen och andra föremål som är ägnade att användas som vapen vid brott mot liv eller hälsa får inte innehas på offentlig plats. Detsamma gäller föremål som är ägnade att användas som vapen... och som är lätt att dölja. Förbudet gäller även på skolområde under skoltid och i fordon på offentlig plats.', explanation: 'Förbjuder knivar på offentlig plats, skolområde och i fordon. Undantag: giltigt skäl (arbete, jakt, friluftsliv).', examples: ['Kniv i innerficka på stan', 'Kniv i bil utan giltigt skäl'], tips: ['Fråga efter giltigt skäl', 'Dokumentera typ och plats'] },
+        ]
+      },
+      {
+        id: 'rb', name: 'Rättegångsbalken (1942:740)', short: 'RB', color: 'indigo',
+        desc: 'Straffprocess: gripa, anhålla, häkta.',
+        mistakes: ['Blandar gripande och anhållande', 'Glömmer tidsfrister'],
+        paragraphs: [
+          { id: 'rb-24-7', num: '24 kap. 7 §', title: 'Gripande', text: 'Om det finns skäl att anhålla någon, får en polisman i brådskande fall gripa honom även utan anhållningsbeslut. Om det finns skäl att häkta någon, får en polisman gripa honom även utan att det finns skäl att anhålla.', explanation: 'Polisen får gripa i brådskande fall om skäl för anhållande eller häktning finns.', examples: ['Person på bar gärning', 'Misstänkt som försöker fly'], tips: ['Dokumentera grunden', 'Underrätta åklagare skyndsamt'] },
+        ]
+      },
+    ];
+
+    const SCENARIOS = [
+      {
+        id: 'sc-1', title: 'Störande berusad i centrum',
+        situation: 'Du patrullerar centrum en fredagskväll kl. 23:30 tillsammans med din kollega. Ni ser en man i 30-årsåldern som står mitt på gågatan och skriker högt, svajar kraftigt och knuffar till förbipasserande. Flera personer tittar oroligt på. Mannen luktar starkt av alkohol.',
+        context: 'Offentlig plats, flera vittnen, mannen verkar berusad och stör ordningen.',
+        correctLaw: 'Polislagen', correctParagraph: '13 §',
+        keyPoints: ['Personen stör den allmänna ordningen', 'Börja med dialog och uppmaning att avlägsna sig', 'Omhändertagande enligt PL 13 § om avvisning inte räcker', 'Överväg LOB om berusningsgraden motiverar det', 'Dokumentera observationer'],
+        alternatives: ['Avvisa/avlägsna enligt PL 13 § 2 st', 'Omhänderta enligt PL 13 §', 'Omhänderta enligt LOB 1 §', 'Lämna om situationen löser sig (sällan lämpligt)'],
+        proportionality: 'Börja med mildaste åtgärden. Avvisning först. Omhändertagande endast om nödvändigt. Våld endast enligt PL 10 § vid motstånd.',
+        questions: [
+          { id: 'q1', prompt: 'Vad gör du först? Beskriv ditt agerande.', type: 'open' },
+          { id: 'q2', prompt: 'Vilken lag och paragraf ger dig befogenhet att ingripa?', type: 'open' },
+          { id: 'q3', prompt: 'Vilka alternativa åtgärder finns?', type: 'open' },
+          { id: 'q4', prompt: 'Hur bedömer du proportionaliteten i ditt valda ingripande?', type: 'open' },
+        ]
+      },
+      {
+        id: 'sc-2', title: 'Misstänkt kniv på krogen',
+        situation: 'Ni får larm om en person som ska ha visat en kniv inne på en krog. När ni kommer dit pekar personalen ut en man som sitter vid baren. Ni ser att han har något som liknar ett knivskaft i innerfickan. Mannen blir nervös när ni närmar er.',
+        context: 'Krog, misstanke om knivbrott.',
+        correctLaw: 'Knivlagen / Polislagen', correctParagraph: 'KnivL 1 § / PL 19 §',
+        keyPoints: ['Knivlagen förbjuder knivar på offentlig plats utan giltigt skäl', 'PL 19 § 2 p ger rätt att visitera vid särskild anledning', 'Säkerhet först – händer synliga', 'Fråga efter giltigt skäl', 'Dokumentera och eventuellt förverka'],
+        alternatives: ['Kroppsvisitation enligt PL 19 §', 'Omhänderta kniven', 'Gripa om brott misstänks'],
+        proportionality: 'Visitation ska vara försvarlig. Gör det professionellt. Om kniven är laglig (arbetsverktyg) kan det vara okej.',
+        questions: [
+          { id: 'q1', prompt: 'Hur närmar du dig situationen?', type: 'open' },
+          { id: 'q2', prompt: 'Vilken lag ger dig rätt att kroppsvisitera?', type: 'open' },
+          { id: 'q3', prompt: 'Vad gäller för knivar på offentlig plats?', type: 'open' },
+        ]
+      },
+      {
+        id: 'sc-3', title: 'Ungdom som rymmer från HVB',
+        situation: 'Ni får larm från ett HVB-hem att en 16-årig pojke har rymt. Han har tidigare rymt flera gånger och misstänks missbruka. Socialtjänsten har beslutat om vård enligt LVU. Ni hittar honom på en busstation.',
+        context: 'Ung under 18, LVU-beslut finns, rymning.',
+        correctLaw: 'LVU', correctParagraph: '6 §',
+        keyPoints: ['LVU 6 § ger polisen rätt att omhänderta i brådskande fall', 'Socialnämnden beslutar om vård, polisen verkställer', 'Den unge har rätt att bli hörd', 'Dokumentera och underrätta socialtjänsten', 'Undvik onödigt våld'],
+        alternatives: ['Omhänderta enligt LVU 6 § och överlämna till socialtjänsten', 'Kontakta socialtjänsten om beslut saknas'],
+        proportionality: 'Använd minsta möjliga tvång. Förklara vad som händer.',
+        questions: [
+          { id: 'q1', prompt: 'Vilken lag ger dig rätt att omhänderta honom?', type: 'open' },
+          { id: 'q2', prompt: 'Vad gör du praktiskt?', type: 'open' },
+          { id: 'q3', prompt: 'Vilka rättigheter har den unge?', type: 'open' },
+        ]
+      },
+      {
+        id: 'sc-4', title: 'Misstänkt misshandel i hemmet',
+        situation: 'Ni kommer till en lägenhet efter larm om bråk. En kvinna öppnar med blåmärke i ansiktet och berättar gråtande att hennes sambo har slagit henne. Sambon sitter i soffan och säger att hon föll. Det finns krossat glas på golvet.',
+        context: 'Misstänkt våld i nära relation.',
+        correctLaw: 'Brottsbalken / Rättegångsbalken', correctParagraph: 'BrB 3 kap. 5 § / RB 24 kap. 7 §',
+        keyPoints: ['Misstanke om misshandel', 'Dokumentera skador, ta foto, säkra bevis', 'Hör båda parter separat', 'Gripande enligt RB 24:7 om skäl finns', 'Särskild hänsyn vid våld i nära relation', 'Informera om målsägandebiträde'],
+        alternatives: ['Gripa misstänkt', 'Dokumentera och lämna till utredning', 'Avlägsna misstänkt tillfälligt'],
+        proportionality: 'Prioritera målsägandens säkerhet. Gripande ska vara motiverat.',
+        questions: [
+          { id: 'q1', prompt: 'Hur säkrar du platsen och tar upp initiala uppgifter?', type: 'open' },
+          { id: 'q2', prompt: 'Vilket brott kan det röra sig om?', type: 'open' },
+          { id: 'q3', prompt: 'När får du gripa enligt RB?', type: 'open' },
+        ]
+      },
+      {
+        id: 'sc-5', title: 'Person i psykisk kris på bro',
+        situation: 'Ni får larm om en person som står på en bro och hotar att hoppa. När ni kommer dit ser ni en man i 40-årsåldern som verkar förvirrad, pratar osammanhängande och säger att "rösterna" säger åt honom att hoppa. Han vill inte ha hjälp.',
+        context: 'Misstänkt allvarlig psykisk störning, suicidrisk.',
+        correctLaw: 'LPT', correctParagraph: '3 §',
+        keyPoints: ['LPT 3 §: allvarlig psykisk störning + oundgängligt vårdbehov + motsätter sig', 'Polisen kan omhänderta för transport', 'Läkare utfärdar vårdintyg', 'Prioritera dialog och deeskalering', 'Säkerhet för personen och er själva'],
+        alternatives: ['Deeskalera och övertala till frivillig vård', 'Omhänderta för transport till psykiatrisk akutmottagning'],
+        proportionality: 'Liv går före. Använd minsta möjliga tvång. Samverka med ambulans/psykiatri.',
+        questions: [
+          { id: 'q1', prompt: 'Hur närmar du dig personen?', type: 'open' },
+          { id: 'q2', prompt: 'Vilken lag är relevant för tvångsvård?', type: 'open' },
+          { id: 'q3', prompt: 'Vad är polisens roll vs. vårdens?', type: 'open' },
+        ]
+      },
+    ];
+
+    const FLASHCARDS = [
+      { id: 'fc-1', front: 'När får polisen använda våld enligt PL 10 §?', back: 'När andra medel är otillräckliga OCH det är försvarligt, enligt punkterna 1–6. Alltid proportionalitet.', law: 'polislagen', tags: ['våld','PL10'] },
+      { id: 'fc-2', front: 'Vad krävs för omhändertagande enligt PL 13 §?', back: 'Stör den allmänna ordningen eller omedelbar fara. Avvisa/avlägsna först. Omhändertagande endast om nödvändigt. Max 6 h.', law: 'polislagen', tags: ['PL13','ordning'] },
+      { id: 'fc-3', front: 'Skillnad PL 13 § och LOB?', back: 'PL 13: stör ordningen (kan vara nykter). LOB: så berusad att hen inte kan ta hand om sig själv eller utgör fara. LOB = skyddsåtgärd.', law: 'lob', tags: ['LOB','jämförelse'] },
+      { id: 'fc-4', front: 'Tre krav för LPT?', back: '1. Allvarlig psykisk störning\n2. Oundgängligt vårdbehov som inte kan tillgodoses på annat sätt\n3. Motsätter sig eller kan inte samtycka', law: 'lpt', tags: ['LPT'] },
+      { id: 'fc-5', front: 'När kroppsvisitation enligt PL 19 §?', back: '1. Vid omhändertagande/gripande\n2. Farliga föremål (särskild anledning)\n3. Förverkbara föremål (skälig anledning)', law: 'polislagen', tags: ['visitation'] },
+      { id: 'fc-6', front: 'Vad innebär "påtaglig risk" i LVU?', back: 'En risk som är konkret och inte obetydlig – tydlig och allvarlig fara för den unges hälsa eller utveckling.', law: 'lvu', tags: ['LVU'] },
+      { id: 'fc-7', front: 'Gripande vs anhållande vs häktning?', back: 'Gripande: polisen (brådskande)\nAnhållande: åklagare (upp till 3+1 dygn)\nHäktning: domstol (längre, sannolika skäl + risk)', law: 'rb', tags: ['RB'] },
+      { id: 'fc-8', front: 'Knivar på offentlig plats?', back: 'Förbjudet enligt KnivL 1 § på offentlig plats, skolområde under skoltid och i fordon. Undantag: giltigt skäl (arbete, friluftsliv).', law: 'knivlagen', tags: ['kniv'] },
+      { id: 'fc-9', front: 'Proportionalitetsprincipen?', back: 'Ingripandet ska stå i rimlig proportion till syftet. Använd minsta möjliga våld/tvång. Väg nytta mot skada.', law: 'polislagen', tags: ['princip'] },
+      { id: 'fc-10', front: 'Krav för stöld (BrB 8:1)?', back: 'Olovligt tagande + uppsåt att tillägna sig + skada för ägaren. Skillnad mot snatteri: värdet.', law: 'brottsbalken', tags: ['stöld'] },
+    ];
+
+    const COURSES = [
+      { id: 'c-pl', title: 'Polislagen – grunden', desc: 'Uppgifter, befogenheter och de viktigaste paragraferna.', lessons: 8, minutes: 90, icon: '🛡️', law: 'polislagen' },
+      { id: 'c-lob', title: 'LOB – Berusade personer', desc: 'När och hur du omhändertar berusade på lagligt sätt.', lessons: 4, minutes: 45, icon: '🍷', law: 'lob' },
+      { id: 'c-lvu', title: 'LVU – Vård av unga', desc: 'Miljö- och beteendefallen samt polisens roll.', lessons: 5, minutes: 60, icon: '👥', law: 'lvu' },
+      { id: 'c-brb', title: 'Brottsbalken – centrala brott', desc: 'Misshandel, stöld och andra vanliga brott.', lessons: 6, minutes: 75, icon: '⚖️', law: 'brottsbalken' },
+      { id: 'c-lpt', title: 'LPT – Psykiatrisk tvångsvård', desc: 'Förutsättningar och polisens handräckning.', lessons: 4, minutes: 50, icon: '🧠', law: 'lpt' },
+      { id: 'c-kniv', title: 'Kniv- och vapenlagar', desc: 'Förbud, undantag och visitation.', lessons: 3, minutes: 40, icon: '🔪', law: 'knivlagen' },
+    ];
+
+    const QUIZ_BANK = [
+      { id: 'qz1', type: 'multiple', q: 'Vilken paragraf ger polisen rätt att omhänderta för ordningsstörning?', options: ['PL 10 §', 'PL 13 §', 'PL 19 §', 'LOB 1 §'], correct: 'PL 13 §', explanation: 'PL 13 § reglerar omhändertagande, avvisning och avlägsnande vid ordningsstörning.', law: 'PL 13 §' },
+      { id: 'qz2', type: 'truefalse', q: 'Polisen får bara ingripa när ett brott redan har begåtts.', options: ['Sant', 'Falskt'], correct: 'Falskt', explanation: 'PL 1 § ger uttryckligen uppgift att förebygga och förhindra brott.', law: 'PL 1 §' },
+      { id: 'qz3', type: 'multiple', q: 'Vad krävs för LOB-omhändertagande?', options: ['Personen är berusad', 'Personen stör ordningen', 'Personen är så berusad att hen inte kan ta hand om sig själv eller utgör fara', 'Personen har begått brott'], correct: 'Personen är så berusad att hen inte kan ta hand om sig själv eller utgör fara', explanation: 'LOB 1 § kräver hög berusningsgrad med oförmåga eller fara.', law: 'LOB 1 §' },
+      { id: 'qz4', type: 'multiple', q: 'Vilka tre krav gäller för LPT?', options: ['Psykisk störning + vårdbehov + samtycke saknas', 'Berusning + fara + ordningsstörning', 'Brott + flyktrisk + bevisrisk', 'Ålder under 18 + missbruk + socialnämnd'], correct: 'Psykisk störning + vårdbehov + samtycke saknas', explanation: 'Allvarlig psykisk störning, oundgängligt vårdbehov, och att patienten motsätter sig eller inte kan samtycka.', law: 'LPT 3 §' },
+      { id: 'qz5', type: 'truefalse', q: 'Knivar är alltid förbjudna på offentlig plats enligt Knivlagen.', options: ['Sant', 'Falskt'], correct: 'Falskt', explanation: 'Undantag finns för giltigt skäl, t.ex. arbete eller friluftsliv.', law: 'KnivL 1 §' },
+      { id: 'qz6', type: 'multiple', q: 'Vem beslutar om häktning?', options: ['Polisen', 'Åklagaren', 'Domstolen', 'Socialnämnden'], correct: 'Domstolen', explanation: 'Polisen griper, åklagare anhåller, domstol häktar.', law: 'RB 24 kap.' },
+    ];
+
+    // ========== STORAGE ==========
+    const loadProgress = () => {
+      try {
+        const raw = localStorage.getItem('polisakademin-v1');
+        if (raw) return JSON.parse(raw);
+      } catch {}
+      return {
+        xp: 120, level: 3, streak: 4, lastStudy: new Date().toISOString().slice(0,10),
+        lessons: 7, correct: 42, total: 55, minutes: 185,
+        completed: ['les-1'], favorites: { scenarios: ['sc-1'], paragraphs: ['pl-13'], flashcards: ['fc-2'] },
+        notes: {}, dailyGoal: 3, dailyProgress: 1,
+        fcProgress: {},
+      };
+    };
+    const saveProgress = (p) => localStorage.setItem('polisakademin-v1', JSON.stringify(p));
+
+    // ========== ICONS (simple SVG) ==========
+    const Icon = ({ name, size = 20, className = '' }) => {
+      const icons = {
+        home: <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>,
+        layout: <rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>,
+        book: <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>,
+        target: <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>,
+        layers: <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>,
+        library: <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>,
+        chart: <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>,
+        search: <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>,
+        star: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>,
+        bot: <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>,
+        settings: <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>,
+        flame: <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>,
+        zap: <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>,
+        menu: <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>,
+        x: <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>,
+        check: <polyline points="20 6 9 17 4 12"/>,
+        arrow: <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>,
+        clock: <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>,
+        chevron: <polyline points="9 18 15 12 9 6"/>,
+      };
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          {icons[name] || icons.home}
+        </svg>
+      );
+    };
+
+    // ========== APP ==========
+    function App() {
+      const [page, setPage] = useState('home');
+      const [sidebar, setSidebar] = useState(false);
+      const [progress, setProgress] = useState(loadProgress);
+      const [selectedScenario, setSelectedScenario] = useState(null);
+      const [selectedLaw, setSelectedLaw] = useState(null);
+      const [selectedParagraph, setSelectedParagraph] = useState(null);
+      const [fcIndex, setFcIndex] = useState(0);
+      const [fcFlipped, setFcFlipped] = useState(false);
+      const [quizIdx, setQuizIdx] = useState(0);
+      const [quizAnswer, setQuizAnswer] = useState(null);
+      const [quizScore, setQuizScore] = useState(0);
+      const [searchQ, setSearchQ] = useState('');
+      const [aiMessages, setAiMessages] = useState([{ role: 'ai', text: 'Hej! Jag är din AI-lärare i polisjuridik. Berätta om ett scenario eller en lagfråga så hjälper jag dig resonera – utan att ge facit direkt. Vad vill du träna på?' }]);
+      const [aiInput, setAiInput] = useState('');
+      const [scenarioAnswers, setScenarioAnswers] = useState({});
+      const [scenarioStep, setScenarioStep] = useState(0);
+      const [scenarioFeedback, setScenarioFeedback] = useState(null);
+      const [noteText, setNoteText] = useState('');
+
+      useEffect(() => { saveProgress(progress); }, [progress]);
+
+      const addXp = (n) => setProgress(p => {
+        const xp = p.xp + n;
+        const level = Math.floor(Math.sqrt(xp / 50)) + 1;
+        return { ...p, xp, level };
+      });
+
+      const accuracy = progress.total > 0 ? Math.round((progress.correct / progress.total) * 100) : 0;
+
+      const nav = [
+        { id: 'home', label: 'Hem', icon: 'home' },
+        { id: 'dashboard', label: 'Dashboard', icon: 'layout' },
+        { id: 'courses', label: 'Kurser', icon: 'book' },
+        { id: 'scenarios', label: 'Scenarier', icon: 'target' },
+        { id: 'flashcards', label: 'Flashcards', icon: 'layers' },
+        { id: 'laws', label: 'Lagbibliotek', icon: 'library' },
+        { id: 'stats', label: 'Statistik', icon: 'chart' },
+        { id: 'ai', label: 'AI-lärare', icon: 'bot' },
+        { id: 'favorites', label: 'Favoriter', icon: 'star' },
+        { id: 'search', label: 'Sök', icon: 'search' },
+        { id: 'admin', label: 'Admin', icon: 'settings' },
+      ];
+
+      const go = (p) => { setPage(p); setSidebar(false); window.scrollTo(0,0); };
+
+      // AI response (rule-based socratic)
+      const sendAi = () => {
+        if (!aiInput.trim()) return;
+        const userMsg = aiInput.trim();
+        setAiMessages(m => [...m, { role: 'user', text: userMsg }]);
+        setAiInput('');
+        setTimeout(() => {
+          let reply = '';
+          const lower = userMsg.toLowerCase();
+          if (lower.includes('13') || lower.includes('omhändertag')) {
+            reply = 'Bra att du tänker på PL 13 §. Låt oss gräva djupare:\n\n1. Stör personen den allmänna ordningen, eller utgör hen en omedelbar fara?\n2. Har du övervägt avvisning/avlägsnande först?\n3. Är omhändertagande nödvändigt för att upprätthålla ordningen?\n\nVad ser du i situationen som gör att just omhändertagande (inte bara avvisning) är motiverat?';
+          } else if (lower.includes('lob') || lower.includes('berusad')) {
+            reply = 'LOB är en skyddsåtgärd. Fundera:\n\n– Är personen så berusad att hen inte kan ta hand om sig själv?\n– Eller utgör hen fara för sig själv eller andra?\n– Skiljer sig detta från en "vanlig" ordningsstörning enligt PL 13 §?\n\nHur skulle du motivera valet mellan LOB och PL 13 § för en kollega?';
+          } else if (lower.includes('våld') || lower.includes('10 §') || lower.includes('pl 10')) {
+            reply = 'PL 10 § kräver två saker samtidigt: andra medel otillräckliga OCH försvarligt. Vilken av punkterna 1–6 tycker du passar bäst i ditt scenario? Och hur säkerställer du proportionaliteten?';
+          } else if (lower.includes('lpt') || lower.includes('psyk')) {
+            reply = 'LPT har tre strikta krav. Kan du lista dem? Tänk särskilt på skillnaden mellan "psykisk störning" och "allvarlig psykisk störning", och vad "oundgängligt vårdbehov" betyder i praktiken.';
+          } else if (lower.includes('kniv')) {
+            reply = 'Knivlagen handlar om offentlig plats och giltigt skäl. Vilka frågor ställer du till personen? Hur dokumenterar du? Finns det skäl för visitation enligt PL 19 §?';
+          } else if (lower.includes('scenario') || lower.includes('situation')) {
+            reply = 'Beskriv situationen mer i detalj: Var är ni? Vad gör personen? Finns vittnen? Finns omedelbar fara? Sedan tar vi lagrum för lagrum.';
+          } else {
+            reply = 'Intressant. Låt oss använda sokratisk metod:\n\n1. Vilken lag tror du är mest relevant?\n2. Vilken paragraf?\n3. Vilka alternativa åtgärder finns?\n4. Hur bedömer du proportionalitet, behov och legalitet?\n\nBörja med punkt 1 – vilken lag lutar du åt och varför?';
+          }
+          setAiMessages(m => [...m, { role: 'ai', text: reply }]);
+        }, 600);
+      };
+
+      // Scenario feedback generator
+      const generateScenarioFeedback = (sc, answers) => {
+        const text = Object.values(answers).join(' ').toLowerCase();
+        let score = 0;
+        const points = [];
+        if (text.includes('13') || text.includes('omhändertag') || text.includes('avvisa') || text.includes('avlägsna')) { score += 25; points.push('Du nämner relevant åtgärd kopplad till PL 13 §.'); }
+        if (text.includes('proportional') || text.includes('minsta') || text.includes('mildaste')) { score += 20; points.push('Bra att du tänker på proportionalitet.'); }
+        if (text.includes('dialog') || text.includes('prata') || text.includes('uppmana')) { score += 15; points.push('Dialog och uppmaning först – korrekt prioritering.'); }
+        if (text.includes('lob')) { score += 10; points.push('Du överväger LOB – bra alternativtänk.'); }
+        if (text.includes('dokument') || text.includes('anteck')) { score += 10; points.push('Dokumentation nämns – viktigt.'); }
+        if (text.includes(sc.correctParagraph.toLowerCase().replace(' §','')) || text.includes(sc.correctLaw.toLowerCase())) { score += 20; points.push('Du träffar rätt lag/paragraf.'); }
+        score = Math.min(100, score + 10);
+        return {
+          score,
+          points: points.length ? points : ['Du har resonerat kring situationen. Försök koppla tydligare till lagtext och proportionalitet.'],
+          law: sc.correctLaw,
+          paragraph: sc.correctParagraph,
+          keyPoints: sc.keyPoints,
+          alternatives: sc.alternatives,
+          proportionality: sc.proportionality,
+        };
+      };
+
+      // Search
+      const searchResults = useMemo(() => {
+        if (!searchQ.trim()) return [];
+        const q = searchQ.toLowerCase();
+        const res = [];
+        LAWS.forEach(l => {
+          if (l.name.toLowerCase().includes(q) || l.short.toLowerCase().includes(q) || l.desc.toLowerCase().includes(q)) {
+            res.push({ type: 'lag', title: l.name, id: l.id, subtitle: l.desc });
+          }
+          l.paragraphs.forEach(p => {
+            if (p.num.toLowerCase().includes(q) || p.title.toLowerCase().includes(q) || p.text.toLowerCase().includes(q) || p.explanation.toLowerCase().includes(q)) {
+              res.push({ type: 'paragraf', title: `${l.short} ${p.num} – ${p.title}`, id: p.id, lawId: l.id, subtitle: p.explanation.slice(0,80)+'...' });
+            }
+          });
+        });
+        SCENARIOS.forEach(s => {
+          if (s.title.toLowerCase().includes(q) || s.situation.toLowerCase().includes(q)) {
+            res.push({ type: 'scenario', title: s.title, id: s.id, subtitle: s.situation.slice(0,80)+'...' });
+          }
+        });
+        FLASHCARDS.forEach(f => {
+          if (f.front.toLowerCase().includes(q) || f.back.toLowerCase().includes(q)) {
+            res.push({ type: 'flashcard', title: f.front, id: f.id, subtitle: f.back.slice(0,60)+'...' });
+          }
+        });
+        return res.slice(0, 20);
+      }, [searchQ]);
+
+      // ========== PAGES ==========
+      const renderHome = () => (
+        <div className="space-y-6 fade-in">
+          <div className="card p-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-police-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <h1 className="text-2xl sm:text-3xl font-bold mb-1">Välkommen tillbaka 👋</h1>
+            <p className="text-slate-400 mb-5">Fortsätt din resa mot Polisutbildningen.</p>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex items-center gap-2 bg-slate-800/80 rounded-xl px-3 py-2">
+                <Icon name="flame" size={18} className="text-amber-400" />
+                <div><p className="text-xs text-slate-400">Streak</p><p className="font-bold">{progress.streak} dagar</p></div>
+              </div>
+              <div className="flex items-center gap-2 bg-slate-800/80 rounded-xl px-3 py-2">
+                <Icon name="zap" size={18} className="text-police-400" />
+                <div><p className="text-xs text-slate-400">XP</p><p className="font-bold">{progress.xp}</p></div>
+              </div>
+              <div className="bg-police-600/20 text-police-300 rounded-xl px-3 py-2 font-semibold text-sm self-center">Nivå {progress.level}</div>
+            </div>
+          </div>
+
+          <div className="card p-5">
+            <div className="flex justify-between mb-2"><h2 className="font-semibold">Dagens mål</h2><span className="text-sm text-slate-400">{progress.dailyProgress}/{progress.dailyGoal} lektioner</span></div>
+            <div className="progress-bar"><div className="progress-fill" style={{ width: `${Math.min(100,(progress.dailyProgress/progress.dailyGoal)*100)}%` }} /></div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="card card-hover p-5">
+              <p className="text-sm text-police-400 font-medium mb-2">Dagens lektion</p>
+              <h3 className="font-semibold mb-1">PL 13 § – Omhändertagande för ordning</h3>
+              <p className="text-sm text-slate-400 mb-3 flex items-center gap-1"><Icon name="clock" size={14} /> 15 min · 30 XP</p>
+              <button onClick={() => go('courses')} className="btn-primary text-sm inline-flex items-center gap-2">Starta <Icon name="arrow" size={16} /></button>
+            </div>
+            <div className="card card-hover p-5">
+              <p className="text-sm text-amber-400 font-medium mb-2">Kommande repetition</p>
+              <h3 className="font-semibold mb-1">5 flashcards förfallna</h3>
+              <p className="text-sm text-slate-400 mb-3">Spaced repetition håller kunskapen färsk.</p>
+              <button onClick={() => go('flashcards')} className="btn-secondary text-sm inline-flex items-center gap-2">Repetera <Icon name="arrow" size={16} /></button>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="font-semibold mb-3">Snabbval</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { id: 'scenarios', icon: 'target', label: 'Scenario', c: 'text-rose-400' },
+                { id: 'courses', icon: 'book', label: 'Kurser', c: 'text-police-400' },
+                { id: 'flashcards', icon: 'layers', label: 'Flashcards', c: 'text-amber-400' },
+                { id: 'ai', icon: 'bot', label: 'AI-lärare', c: 'text-violet-400' },
+              ].map(i => (
+                <button key={i.id} onClick={() => go(i.id)} className="card card-hover p-4 flex flex-col items-center gap-2">
+                  <Icon name={i.icon} size={24} className={i.c} />
+                  <span className="text-sm font-medium">{i.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="card p-4 text-center"><p className="text-2xl font-bold">{progress.lessons}</p><p className="text-xs text-slate-400">Lektioner</p></div>
+            <div className="card p-4 text-center"><p className="text-2xl font-bold">{accuracy}%</p><p className="text-xs text-slate-400">Rätt svar</p></div>
+            <div className="card p-4 text-center"><p className="text-2xl font-bold">{progress.minutes}</p><p className="text-xs text-slate-400">Minuter</p></div>
+            <div className="card p-4 text-center"><p className="text-2xl font-bold">{SCENARIOS.length}</p><p className="text-xs text-slate-400">Scenarier</p></div>
+          </div>
+        </div>
+      );
+
+      const renderDashboard = () => (
+        <div className="space-y-6 fade-in">
+          <div><h1 className="text-2xl font-bold">Dashboard</h1><p className="text-slate-400">Översikt över din utveckling</p></div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { icon: 'zap', label: 'XP', value: progress.xp, sub: `Nivå ${progress.level}`, c: 'text-police-400' },
+              { icon: 'flame', label: 'Streak', value: `${progress.streak} dagar`, sub: 'Håll i gång!', c: 'text-amber-400' },
+              { icon: 'check', label: 'Rätt svar', value: `${accuracy}%`, sub: `${progress.correct}/${progress.total}`, c: 'text-emerald-400' },
+              { icon: 'book', label: 'Lektioner', value: progress.lessons, sub: 'genomförda', c: 'text-violet-400' },
+            ].map(s => (
+              <div key={s.label} className="card p-5">
+                <div className="flex items-center gap-2 mb-2"><Icon name={s.icon} size={18} className={s.c} /><span className="text-sm text-slate-400">{s.label}</span></div>
+                <p className="text-2xl font-bold">{s.value}</p>
+                <p className="text-xs text-slate-500 mt-1">{s.sub}</p>
+              </div>
+            ))}
+          </div>
+          <div className="card p-5">
+            <h3 className="font-semibold mb-3">Veckans studietid (min)</h3>
+            <div className="flex items-end gap-2 h-32">
+              {[25,40,15,55,30,20,35].map((v,i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full bg-police-600 rounded-t" style={{ height: `${v*1.5}px` }} />
+                  <span className="text-xs text-slate-500">{['M','T','O','T','F','L','S'][i]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="card p-5">
+              <h3 className="font-semibold mb-3 text-amber-400">Svåraste områden</h3>
+              <ul className="space-y-2 text-sm">
+                <li className="flex justify-between"><span>LPT – förutsättningar</span><span className="text-amber-400">62%</span></li>
+                <li className="flex justify-between"><span>LVU 6 §</span><span className="text-amber-400">68%</span></li>
+                <li className="flex justify-between"><span>PL 10 § våld</span><span className="text-amber-400">71%</span></li>
+              </ul>
+            </div>
+            <div className="card p-5">
+              <h3 className="font-semibold mb-3 text-emerald-400">Starkaste lag</h3>
+              <ul className="space-y-2 text-sm">
+                <li className="flex justify-between"><span>Polislagen 13 §</span><span className="text-emerald-400">94%</span></li>
+                <li className="flex justify-between"><span>LOB</span><span className="text-emerald-400">89%</span></li>
+                <li className="flex justify-between"><span>Knivlagen</span><span className="text-emerald-400">87%</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      );
+
+      const renderCourses = () => (
+        <div className="space-y-6 fade-in">
+          <div><h1 className="text-2xl font-bold">Kurser</h1><p className="text-slate-400">Strukturerade lektioner i svensk polisjuridik</p></div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {COURSES.map(c => (
+              <div key={c.id} className="card card-hover p-5 cursor-pointer" onClick={() => { addXp(5); go('quiz'); }}>
+                <div className="flex gap-4">
+                  <div className="text-3xl">{c.icon}</div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold mb-1">{c.title}</h3>
+                    <p className="text-sm text-slate-400 mb-3">{c.desc}</p>
+                    <div className="flex gap-3 text-xs text-slate-500">
+                      <span>{c.lessons} lektioner</span>
+                      <span>~{c.minutes} min</span>
+                    </div>
+                    <div className="mt-3 progress-bar"><div className="progress-fill" style={{ width: `${Math.random()*60+20}%` }} /></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="card p-5">
+            <h2 className="font-semibold mb-4">Snabbquiz – testa dig</h2>
+            <button onClick={() => { setQuizIdx(0); setQuizAnswer(null); setQuizScore(0); go('quiz'); }} className="btn-primary">Starta quiz (6 frågor)</button>
+          </div>
+        </div>
+      );
+
+      const renderQuiz = () => {
+        const q = QUIZ_BANK[quizIdx];
+        if (!q) {
+          return (
+            <div className="card p-8 text-center fade-in">
+              <h2 className="text-2xl font-bold mb-2">Quiz klart!</h2>
+              <p className="text-4xl font-bold text-police-400 mb-2">{quizScore}/{QUIZ_BANK.length}</p>
+              <p className="text-slate-400 mb-6">+{quizScore * 10} XP</p>
+              <button onClick={() => go('courses')} className="btn-primary">Tillbaka till kurser</button>
+            </div>
+          );
+        }
+        return (
+          <div className="space-y-6 fade-in max-w-xl mx-auto">
+            <div className="flex justify-between text-sm text-slate-400">
+              <span>Fråga {quizIdx + 1}/{QUIZ_BANK.length}</span>
+              <span>Poäng: {quizScore}</span>
+            </div>
+            <div className="progress-bar"><div className="progress-fill" style={{ width: `${((quizIdx)/QUIZ_BANK.length)*100}%` }} /></div>
+            <div className="card p-6">
+              <p className="text-xs text-slate-500 mb-2 uppercase">{q.type === 'truefalse' ? 'Sant/Falskt' : 'Flerval'}</p>
+              <h2 className="text-lg font-semibold mb-6">{q.q}</h2>
+              <div className="space-y-2">
+                {q.options.map(opt => {
+                  let cls = 'w-full text-left p-4 rounded-xl border border-slate-700 hover:border-police-500/50 transition';
+                  if (quizAnswer !== null) {
+                    if (opt === q.correct) cls += ' bg-emerald-500/20 border-emerald-500/50';
+                    else if (opt === quizAnswer) cls += ' bg-rose-500/20 border-rose-500/50';
+                  }
+                  return (
+                    <button key={opt} disabled={quizAnswer !== null} onClick={() => {
+                      setQuizAnswer(opt);
+                      const correct = opt === q.correct;
+                      if (correct) { setQuizScore(s => s + 1); addXp(10); }
+                      setProgress(p => ({ ...p, correct: p.correct + (correct?1:0), total: p.total + 1 }));
+                    }} className={cls}>{opt}</button>
+                  );
+                })}
+              </div>
+              {quizAnswer !== null && (
+                <div className="mt-4 p-4 rounded-xl bg-slate-800/80 text-sm">
+                  <p className="font-medium mb-1">{quizAnswer === q.correct ? '✅ Rätt!' : '❌ Fel'}</p>
+                  <p className="text-slate-400">{q.explanation}</p>
+                  <p className="text-xs text-police-400 mt-2">{q.law}</p>
+                  <button onClick={() => { setQuizIdx(i => i + 1); setQuizAnswer(null); }} className="btn-primary mt-4 text-sm">Nästa</button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      const renderScenarios = () => {
+        if (selectedScenario) {
+          const sc = SCENARIOS.find(s => s.id === selectedScenario);
+          if (scenarioFeedback) {
+            return (
+              <div className="space-y-6 fade-in max-w-2xl mx-auto">
+                <button onClick={() => { setSelectedScenario(null); setScenarioFeedback(null); setScenarioAnswers({}); setScenarioStep(0); }} className="text-sm text-slate-400 hover:text-white">← Tillbaka</button>
+                <div className="card p-6 text-center">
+                  <p className="text-sm text-slate-400 mb-1">Din poäng</p>
+                  <p className="text-5xl font-bold text-police-400 mb-2">{scenarioFeedback.score}</p>
+                  <p className="text-slate-400">+{Math.round(scenarioFeedback.score/2)} XP</p>
+                </div>
+                <div className="card p-5 space-y-3">
+                  <h3 className="font-semibold text-emerald-400">Vad du gjorde bra</h3>
+                  {scenarioFeedback.points.map((p,i) => <p key={i} className="text-sm text-slate-300">• {p}</p>)}
+                </div>
+                <div className="card p-5 space-y-2">
+                  <h3 className="font-semibold">Rätt lag & paragraf</h3>
+                  <p className="text-police-400 font-medium">{scenarioFeedback.law} – {scenarioFeedback.paragraph}</p>
+                  <h4 className="font-medium mt-3 text-sm">Nyckelpunkter</h4>
+                  {scenarioFeedback.keyPoints.map((k,i) => <p key={i} className="text-sm text-slate-400">• {k}</p>)}
+                  <h4 className="font-medium mt-3 text-sm">Alternativ</h4>
+                  {scenarioFeedback.alternatives.map((a,i) => <p key={i} className="text-sm text-slate-400">• {a}</p>)}
+                  <h4 className="font-medium mt-3 text-sm">Proportionalitet</h4>
+                  <p className="text-sm text-slate-400">{scenarioFeedback.proportionality}</p>
+                </div>
+                <button onClick={() => { setSelectedScenario(null); setScenarioFeedback(null); setScenarioAnswers({}); setScenarioStep(0); go('scenarios'); }} className="btn-primary w-full">Tillbaka till scenarier</button>
+              </div>
+            );
+          }
+          const q = sc.questions[scenarioStep];
+          return (
+            <div className="space-y-6 fade-in max-w-2xl mx-auto">
+              <button onClick={() => { setSelectedScenario(null); setScenarioStep(0); setScenarioAnswers({}); }} className="text-sm text-slate-400 hover:text-white">← Tillbaka</button>
+              <div className="card p-5">
+                <h2 className="font-bold text-lg mb-2">{sc.title}</h2>
+                <p className="text-slate-300 text-sm leading-relaxed">{sc.situation}</p>
+                <p className="text-xs text-slate-500 mt-2">{sc.context}</p>
+              </div>
+              <div className="card p-5">
+                <p className="text-xs text-slate-500 mb-1">Fråga {scenarioStep + 1}/{sc.questions.length}</p>
+                <h3 className="font-semibold mb-4">{q.prompt}</h3>
+                <textarea
+                  className="input-field min-h-[100px] mb-4"
+                  placeholder="Skriv ditt resonemang..."
+                  value={scenarioAnswers[q.id] || ''}
+                  onChange={e => setScenarioAnswers(a => ({ ...a, [q.id]: e.target.value }))}
+                />
+                <button
+                  className="btn-primary"
+                  disabled={!scenarioAnswers[q.id]?.trim()}
+                  onClick={() => {
+                    if (scenarioStep < sc.questions.length - 1) {
+                      setScenarioStep(s => s + 1);
+                    } else {
+                      const fb = generateScenarioFeedback(sc, scenarioAnswers);
+                      setScenarioFeedback(fb);
+                      addXp(Math.round(fb.score / 2));
+                      setProgress(p => ({ ...p, lessons: p.lessons + 1, dailyProgress: p.dailyProgress + 1 }));
+                    }
+                  }}
+                >
+                  {scenarioStep < sc.questions.length - 1 ? 'Nästa fråga' : 'Få feedback'}
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div className="space-y-6 fade-in">
+            <div><h1 className="text-2xl font-bold">Scenarier</h1><p className="text-slate-400">Realistiska polisärenden – det viktigaste i appen</p></div>
+            <div className="space-y-3">
+              {SCENARIOS.map(s => (
+                <div key={s.id} className="card card-hover p-5 cursor-pointer" onClick={() => { setSelectedScenario(s.id); setScenarioStep(0); setScenarioAnswers({}); setScenarioFeedback(null); }}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold mb-1">{s.title}</h3>
+                      <p className="text-sm text-slate-400 line-clamp-2">{s.situation.slice(0,120)}...</p>
+                      <p className="text-xs text-police-400 mt-2">{s.correctLaw} · {s.correctParagraph}</p>
+                    </div>
+                    <Icon name="chevron" size={20} className="text-slate-600 flex-shrink-0" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+
+      const renderFlashcards = () => {
+        const card = FLASHCARDS[fcIndex % FLASHCARDS.length];
+        return (
+          <div className="space-y-6 fade-in max-w-lg mx-auto">
+            <div><h1 className="text-2xl font-bold">Flashcards</h1><p className="text-slate-400">Spaced repetition · Anki-liknande</p></div>
+            <div
+              className="card p-8 min-h-[220px] flex flex-col items-center justify-center cursor-pointer text-center"
+              onClick={() => setFcFlipped(f => !f)}
+            >
+              <p className="text-xs text-slate-500 mb-3">{fcFlipped ? 'BAKSIDA' : 'FRAMSIDA'} · klicka för att vända</p>
+              <p className="text-lg font-medium whitespace-pre-line">{fcFlipped ? card.back : card.front}</p>
+              {fcFlipped && <p className="text-xs text-police-400 mt-4">{card.tags.join(' · ')}</p>}
+            </div>
+            <div className="flex gap-2 justify-center">
+              {['Svår', 'Osäker', 'Bra', 'Lätt'].map((label, i) => (
+                <button key={label} onClick={() => {
+                  setFcFlipped(false);
+                  setFcIndex(i => i + 1);
+                  addXp(i + 2);
+                }} className={`px-4 py-2 rounded-xl text-sm font-medium ${i < 2 ? 'bg-slate-800 text-slate-300' : 'bg-police-600/30 text-police-300'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="text-center text-sm text-slate-500">{(fcIndex % FLASHCARDS.length) + 1} / {FLASHCARDS.length}</p>
+          </div>
+        );
+      };
+
+      const renderLaws = () => {
+        if (selectedParagraph) {
+          const law = LAWS.find(l => l.id === selectedLaw);
+          const p = law?.paragraphs.find(x => x.id === selectedParagraph);
+          if (!p) return null;
+          return (
+            <div className="space-y-6 fade-in max-w-2xl mx-auto">
+              <button onClick={() => setSelectedParagraph(null)} className="text-sm text-slate-400 hover:text-white">← Tillbaka</button>
+              <div className="card p-6">
+                <p className="text-police-400 font-medium mb-1">{law.short} {p.num}</p>
+                <h2 className="text-xl font-bold mb-4">{p.title}</h2>
+                <div className="bg-slate-800/60 rounded-xl p-4 text-sm text-slate-300 leading-relaxed mb-4 border-l-4 border-police-500">{p.text}</div>
+                <h3 className="font-semibold mb-2">Förklaring</h3>
+                <p className="text-sm text-slate-400 mb-4">{p.explanation}</p>
+                <h3 className="font-semibold mb-2">Exempel</h3>
+                <ul className="text-sm text-slate-400 space-y-1 mb-4">{p.examples.map((e,i) => <li key={i}>• {e}</li>)}</ul>
+                <h3 className="font-semibold mb-2">Praktiska tips</h3>
+                <ul className="text-sm text-slate-400 space-y-1 mb-4">{p.tips.map((t,i) => <li key={i}>• {t}</li>)}</ul>
+                <h3 className="font-semibold mb-2">Egna anteckningar</h3>
+                <textarea className="input-field min-h-[80px]" placeholder="Skriv dina anteckningar här..." value={progress.notes[p.id] || ''} onChange={e => setProgress(pr => ({ ...pr, notes: { ...pr.notes, [p.id]: e.target.value } }))} />
+                <button
+                  className="btn-secondary text-sm mt-3"
+                  onClick={() => setProgress(pr => {
+                    const fav = pr.favorites.paragraphs.includes(p.id)
+                      ? pr.favorites.paragraphs.filter(x => x !== p.id)
+                      : [...pr.favorites.paragraphs, p.id];
+                    return { ...pr, favorites: { ...pr.favorites, paragraphs: fav } };
+                  })}
+                >
+                  {progress.favorites.paragraphs.includes(p.id) ? '★ Sparad' : '☆ Spara favorit'}
+                </button>
+              </div>
+            </div>
+          );
+        }
+        if (selectedLaw) {
+          const law = LAWS.find(l => l.id === selectedLaw);
+          return (
+            <div className="space-y-6 fade-in">
+              <button onClick={() => setSelectedLaw(null)} className="text-sm text-slate-400 hover:text-white">← Alla lagar</button>
+              <div className="card p-6">
+                <h1 className="text-2xl font-bold mb-1">{law.name}</h1>
+                <p className="text-slate-400 mb-4">{law.desc}</p>
+                <h3 className="font-semibold text-amber-400 mb-2 text-sm">Vanliga misstag</h3>
+                <ul className="text-sm text-slate-400 space-y-1">{law.mistakes.map((m,i) => <li key={i}>• {m}</li>)}</ul>
+              </div>
+              <div className="space-y-2">
+                {law.paragraphs.map(p => (
+                  <div key={p.id} className="card card-hover p-4 cursor-pointer" onClick={() => setSelectedParagraph(p.id)}>
+                    <p className="font-medium">{p.num} – {p.title}</p>
+                    <p className="text-sm text-slate-500 line-clamp-1">{p.explanation}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div className="space-y-6 fade-in">
+            <div><h1 className="text-2xl font-bold">Lagbibliotek</h1><p className="text-slate-400">Sammanfattningar, paragrafer, exempel och tips</p></div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {LAWS.map(l => (
+                <div key={l.id} className="card card-hover p-5 cursor-pointer" onClick={() => setSelectedLaw(l.id)}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="badge bg-police-600/20 text-police-300 text-xs px-2 py-0.5 rounded-full">{l.short}</span>
+                      <h3 className="font-semibold mt-2">{l.name}</h3>
+                      <p className="text-sm text-slate-400 mt-1">{l.desc}</p>
+                      <p className="text-xs text-slate-500 mt-2">{l.paragraphs.length} paragrafer</p>
+                    </div>
+                    <Icon name="chevron" size={20} className="text-slate-600" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+
+      const renderStats = () => (
+        <div className="space-y-6 fade-in">
+          <div><h1 className="text-2xl font-bold">Statistik</h1><p className="text-slate-400">Din utveckling över tid</p></div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="card p-4 text-center"><p className="text-2xl font-bold">{progress.minutes}</p><p className="text-xs text-slate-400">Studieminuter</p></div>
+            <div className="card p-4 text-center"><p className="text-2xl font-bold text-emerald-400">{progress.correct}</p><p className="text-xs text-slate-400">Rätt svar</p></div>
+            <div className="card p-4 text-center"><p className="text-2xl font-bold text-rose-400">{progress.total - progress.correct}</p><p className="text-xs text-slate-400">Fel svar</p></div>
+            <div className="card p-4 text-center"><p className="text-2xl font-bold">{accuracy}%</p><p className="text-xs text-slate-400">Träffsäkerhet</p></div>
+          </div>
+          <div className="card p-5">
+            <h3 className="font-semibold mb-3">XP & Nivå</h3>
+            <p className="text-3xl font-bold text-police-400 mb-1">{progress.xp} XP</p>
+            <p className="text-sm text-slate-400 mb-3">Nivå {progress.level}</p>
+            <div className="progress-bar h-3"><div className="progress-fill" style={{ width: `${(progress.xp % 100)}%` }} /></div>
+          </div>
+          <div className="card p-5">
+            <h3 className="font-semibold mb-3">Streak</h3>
+            <div className="flex items-center gap-3">
+              <Icon name="flame" size={32} className="text-amber-400" />
+              <div>
+                <p className="text-2xl font-bold">{progress.streak} dagar</p>
+                <p className="text-sm text-slate-400">Studera idag för att behålla streaken</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+      const renderAI = () => (
+        <div className="space-y-4 fade-in flex flex-col h-[calc(100vh-8rem)]">
+          <div><h1 className="text-2xl font-bold">AI-lärare</h1><p className="text-slate-400">Sokratisk metod – ingen facit direkt</p></div>
+          <div className="card flex-1 overflow-y-auto p-4 space-y-3">
+            {aiMessages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line ${m.role === 'user' ? 'bg-police-600 text-white' : 'bg-slate-800 text-slate-200'}`}>
+                  {m.text}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input className="input-field flex-1" placeholder="Skriv din fråga eller resonemang..." value={aiInput} onChange={e => setAiInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendAi()} />
+            <button onClick={sendAi} className="btn-primary px-4">Skicka</button>
+          </div>
+        </div>
+      );
+
+      const renderFavorites = () => (
+        <div className="space-y-6 fade-in">
+          <div><h1 className="text-2xl font-bold">Favoriter</h1><p className="text-slate-400">Sparade scenarier, paragrafer och kort</p></div>
+          <div className="card p-5">
+            <h3 className="font-semibold mb-3">Paragrafer</h3>
+            {progress.favorites.paragraphs.length === 0 ? <p className="text-sm text-slate-500">Inga sparade ännu</p> :
+              progress.favorites.paragraphs.map(id => {
+                const law = LAWS.find(l => l.paragraphs.some(p => p.id === id));
+                const p = law?.paragraphs.find(x => x.id === id);
+                return p ? <button key={id} onClick={() => { setSelectedLaw(law.id); setSelectedParagraph(id); go('laws'); }} className="block w-full text-left p-3 rounded-xl hover:bg-slate-800 text-sm mb-1">{law.short} {p.num} – {p.title}</button> : null;
+              })
+            }
+          </div>
+          <div className="card p-5">
+            <h3 className="font-semibold mb-3">Scenarier</h3>
+            {progress.favorites.scenarios.map(id => {
+              const s = SCENARIOS.find(x => x.id === id);
+              return s ? <button key={id} onClick={() => { setSelectedScenario(id); go('scenarios'); }} className="block w-full text-left p-3 rounded-xl hover:bg-slate-800 text-sm mb-1">{s.title}</button> : null;
+            })}
+          </div>
+        </div>
+      );
+
+      const renderSearch = () => (
+        <div className="space-y-6 fade-in">
+          <div><h1 className="text-2xl font-bold">Sök</h1><p className="text-slate-400">Paragrafer, lagar, brott, begrepp</p></div>
+          <input className="input-field text-lg" placeholder="Sök t.ex. '13 §', 'LOB', 'misshandel'..." value={searchQ} onChange={e => setSearchQ(e.target.value)} autoFocus />
+          <div className="space-y-2">
+            {searchResults.map((r, i) => (
+              <div key={i} className="card card-hover p-4 cursor-pointer" onClick={() => {
+                if (r.type === 'lag') { setSelectedLaw(r.id); go('laws'); }
+                else if (r.type === 'paragraf') { setSelectedLaw(r.lawId); setSelectedParagraph(r.id); go('laws'); }
+                else if (r.type === 'scenario') { setSelectedScenario(r.id); go('scenarios'); }
+                else if (r.type === 'flashcard') go('flashcards');
+              }}>
+                <span className="text-xs text-slate-500 uppercase">{r.type}</span>
+                <p className="font-medium">{r.title}</p>
+                <p className="text-sm text-slate-400">{r.subtitle}</p>
+              </div>
+            ))}
+            {searchQ && searchResults.length === 0 && <p className="text-slate-500 text-center py-8">Inga träffar</p>}
+          </div>
+        </div>
+      );
+
+      const renderAdmin = () => (
+        <div className="space-y-6 fade-in">
+          <div><h1 className="text-2xl font-bold">Admin</h1><p className="text-slate-400">Lägg till och redigera innehåll (demo)</p></div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {['Lägg till lag', 'Skapa scenario', 'Skapa quiz', 'Redigera lektion', 'Skapa flashcard', 'Hantera användare'].map(a => (
+              <div key={a} className="card p-5 opacity-60">
+                <h3 className="font-semibold mb-1">{a}</h3>
+                <p className="text-sm text-slate-500">Tillgängligt i full version med backend</p>
+              </div>
+            ))}
+          </div>
+          <div className="card p-5">
+            <h3 className="font-semibold mb-2">Nuvarande innehåll</h3>
+            <ul className="text-sm text-slate-400 space-y-1">
+              <li>• {LAWS.length} lagar med paragrafer</li>
+              <li>• {SCENARIOS.length} scenarier</li>
+              <li>• {FLASHCARDS.length} flashcards</li>
+              <li>• {COURSES.length} kurser</li>
+              <li>• {QUIZ_BANK.length} quizfrågor</li>
+            </ul>
+          </div>
+        </div>
+      );
+
+      const pages = {
+        home: renderHome,
+        dashboard: renderDashboard,
+        courses: renderCourses,
+        quiz: renderQuiz,
+        scenarios: renderScenarios,
+        flashcards: renderFlashcards,
+        laws: renderLaws,
+        stats: renderStats,
+        ai: renderAI,
+        favorites: renderFavorites,
+        search: renderSearch,
+        admin: renderAdmin,
+      };
+
+      return (
+        <div className="min-h-screen flex bg-slate-950">
+          {/* Overlay */}
+          {sidebar && <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebar(false)} />}
+
+          {/* Sidebar */}
+          <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 transform transition-transform duration-300 ${sidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+            <div className="flex flex-col h-full">
+              <div className="p-5 border-b border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-police-500 to-police-700 flex items-center justify-center shadow-lg shadow-police-600/30">
+                    <span className="text-white font-bold text-lg">P</span>
+                  </div>
+                  <div>
+                    <h1 className="font-bold text-lg tracking-tight">PolisAkademin</h1>
+                    <p className="text-xs text-slate-400">Polisjuridik</p>
+                  </div>
+                </div>
+              </div>
+              <div className="px-4 py-3 border-b border-slate-800 flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1.5 text-amber-400"><Icon name="flame" size={16} /><span className="font-semibold">{progress.streak}</span></div>
+                <div className="flex items-center gap-1.5 text-police-400"><Icon name="zap" size={16} /><span className="font-semibold">{progress.xp} XP</span></div>
+                <div className="ml-auto text-xs bg-police-600/20 text-police-300 px-2 py-0.5 rounded-full">Nivå {progress.level}</div>
+              </div>
+              <nav className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
+                {nav.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => go(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${page === item.id ? 'bg-police-600/20 text-police-300 border border-police-500/30' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'}`}
+                  >
+                    <Icon name={item.icon} size={18} />
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+              <div className="p-4 border-t border-slate-800 text-xs text-slate-500">© 2026 PolisAkademin</div>
+            </div>
+          </aside>
+
+          {/* Main */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <header className="lg:hidden sticky top-0 z-30 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+              <button onClick={() => setSidebar(true)} className="p-2 rounded-xl hover:bg-slate-800"><Icon name="menu" size={22} /></button>
+              <span className="font-semibold">PolisAkademin</span>
+              <div className="flex items-center gap-1 text-sm text-amber-400"><Icon name="flame" size={16} />{progress.streak}</div>
+            </header>
+            <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+              <div className="max-w-6xl mx-auto">
+                {(pages[page] || pages.home)()}
+              </div>
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
