@@ -263,3 +263,19 @@ window.PP_TF=[
 ["p","21 § polislagen kan användas för att gå in till någon som befaras ligga hjälplös.",1,""],
 ["p","Knivlagen gäller även inom skolområden.",1,"Knivlagen 1 §."]
 ];
+
+/* Lagrum för rader som inte nämner paragrafen i texten. Nyckel = id (c/q/f/t + radnummer från 0). */
+window.PP_REFS={
+c6:"RF 1 kap.",c7:"RF 8 kap.",c9:"RF 1 kap.",c11:"RB 1 kap.",c12:"EKMR art. 1",c17:"RF 13 kap.",
+c20:"BrB 1 kap. 2 §",c21:"BrB 1 kap. 2 §",c22:"BrB 1 kap. 2 §",c59:"RF 4 kap.",c60:"RF 11 kap.",c61:"RF 11 kap.",
+q0:"RF 4 kap.",q1:"RF 1 kap.",q4:"RF 11 kap.",q5:"PL 1 §",q7:"RF 4 kap.",q11:"BrB 1 kap. 2 §",q13:"BrB 8 kap. 8 §",q20:"PL 10 §",
+q28:"OL 2 kap. 1 §",q31:"RF 8 kap.",q34:"RF 11 kap.",q38:"BrB 8 kap. 7 §",q39:"BrB 4 kap. 6 §",
+f0:"BrB 8 kap. 2 §",f1:"BrB 8 kap. 5 §",f2:"BrB 8 kap. 8 §",f3:"BrB 4 kap. 5 §",f4:"BrB 3 kap. 5 §",f5:"BrB 17 kap. 4 §",
+f7:"BrB 24 kap. 1 §",f8:"BrB 24 kap. 4 §",f9:"BrB 23 kap. 4 §",f10:"BrB 23 kap. 1 §",f17:"BrB 8 kap. 7 §",f18:"BrB 4 kap. 6 §",
+f19:"BrB 4 kap. 7 §",f20:"BrB 9 kap. 1 §",f21:"BrB 4 kap. 4 §",f22:"BrB 12 kap. 1 §",
+t0:"RF 4 kap.",t1:"EKMR art. 1",t2:"RF 1 kap.",t3:"RF 8 kap.",t4:"RF 2 kap. 5 §",t5:"RF 11 kap.",t6:"RF 1 kap. 1 §",t8:"RF 11 kap.",
+t9:"PL 1 §",t10:"RF 2 kap. 20 §",t12:"BrB 23 kap. 1 §",t13:"BrB 24 kap. 1 §",t14:"BrB 8 kap. 5 §",t15:"BrB 8 kap. 1 §",t16:"BrB 8 kap. 2 §",
+t17:"BrB 1 kap. 2 §",t18:"BrB 23 kap. 4 §",t19:"BrB 24 kap. 1 §",t20:"BrB 3 kap. 5 §",t21:"RB 20 kap.",t22:"BrB 1 kap. 2 §",
+t26:"PL 9 §",t28:"Knivlagen 1 §",t34:"RF 8 kap.",t35:"RF 13 kap.",t38:"RF 11 kap.",t41:"RF 8 kap.",t42:"BrB 1 kap. 6 §",
+t43:"BrB 8 kap. 7 §",t45:"BrB 4 kap. 6 §",t47:"BrB 3 kap. 5 §",t49:"BrB 4 kap. 6 §",t54:"Knivlagen 1 §",t55:"PL 10 §"
+};

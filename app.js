@@ -85,6 +85,14 @@ function meters(){
   document.getElementById("m-xp").textContent=xpTotal()+" p";
 }
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function refsFor(x){
+  const k=x.id[0],base=k==="c"?x.r+" "+x.d:k==="q"?x.q+" "+x.o[0]+" "+x.e:k==="f"?x.o[0]+" "+x.e:x.s+" "+x.e;
+  return PP_REF.find(((window.PP_REFS||{})[x.id]||"")+" "+base);
+}
+function refLinks(x,lead){
+  const r=refsFor(x);if(!r.length)return "";
+  return `<div class="refs">${lead?`<span class="refs-lead">${lead}</span>`:""}${r.map(q=>`<a class="ref-link" href="${PP_REF.url(q)}" target="_blank" rel="noopener">§ ${esc(PP_REF.label(q))}</a>`).join("")}</div>`;
+}
 function topbar(i,n){return `<div class="bar-top"><button class="back" type="button" data-act="home">← Avsluta</button><span class="count">${i} / ${n}</span></div><div class="track"><div style="width:${Math.round(100*(i-1)/n)}%"></div></div>`}
 
 /* ---------- home ---------- */
@@ -111,7 +119,7 @@ function home(){
   </section>
   <section class="prog" aria-label="Framsteg">
     <div class="sec-head"><h2>Så långt har du kommit</h2><button class="link" type="button" data-act="stats">Historik och synk</button></div>${rows}</section>
-  <p class="note">Innehållet bygger på lärandemålen i kursplanen för PO111B och stämdes av mot lagtext den 11 oktober 2026. Lagar ändras, så slå upp paragrafen vid kortet om något verkar fel.</p>`;
+  <p class="note">Innehållet bygger på lärandemålen i kursplanen för PO111B och stämdes av mot lagtext den 11 oktober 2026. Paragraflänkarna öppnar lagen på lagen.nu. Lagar ändras, så läs själva paragrafen om något verkar fel.</p>`;
 }
 
 /* ---------- flashcards ---------- */
@@ -126,18 +134,20 @@ function cards(){
         <div class="face a"><span class="eyebrow">${AREAS[c.a].n}</span><span class="term">${esc(c.t)}</span><span class="muted">Tryck för att vända</span></div>
         <div class="face b"><span class="eyebrow">${esc(c.t)}</span><span class="def">${esc(c.d)}</span>${c.r?`<span class="ref">${esc(c.r)}</span>`:""}</div>
       </div></button>
+      <div id="card-refs"></div>
       <div class="btnrow one" id="acts"><button class="btn primary" type="button" id="turn">Vänd kortet</button></div></div>`;
     document.getElementById("flip").onclick=flip;document.getElementById("turn").onclick=flip;
   }
   function flip(){
     if(flipped)return;flipped=true;document.getElementById("flip").classList.add("on");
+    document.getElementById("card-refs").innerHTML=refLinks(queue[i],"Läs i lagen");
     const a=document.getElementById("acts");a.className="btnrow";
     a.innerHTML=`<button class="btn no" type="button" id="no">Kunde inte</button><button class="btn ok" type="button" id="ok">Kunde</button>`;
     document.getElementById("no").onclick=()=>ans(false);document.getElementById("ok").onclick=()=>ans(true);
   }
   function ans(ok){
     const c=queue[i];mark(c.id,ok);
-    if(ok)known++;else missed.push({h:c.t,e:c.d+(c.r?" ("+c.r+")":"")});
+    if(ok)known++;else missed.push({h:c.t,e:c.d+(c.r?" ("+c.r+")":""),x:c});
     save();i++;
     if(i>=total)result({title:"Begreppskort",score:known,of:total,xp:known*5,missed,again:cards});else draw();
   }
@@ -148,29 +158,33 @@ function cards(){
 /* ---------- quiz + typfall ---------- */
 function choice(list,n,title,isCase,again){
   clear();view=isCase?"cases":"quiz";
-  const qs=pick(list,n),total=qs.length;let i=0,right=0,answered=false;const missed=[];
+  const qs=pick(list,n),total=qs.length;let i=0,right=0,xp=0,answered=false,hinted=false;const missed=[];
   if(!total)return empty();
   function draw(){
-    const q=qs[i];answered=false;
+    const q=qs[i];answered=false;hinted=false;
     const order=shuffle(q.o.map((t,k)=>({t,ok:k===0})));
     app.innerHTML=`<div class="stage">${topbar(i+1,total)}
       <span class="eyebrow">${AREAS[q.a].n}</span>
       ${isCase?`<div class="case">${esc(q.s)}</div><p class="q">Vad är rätt bedömning?</p>`:`<p class="q">${esc(q.q)}</p>`}
       <div class="opts">${order.map((o,k)=>`<button class="opt" type="button"><kbd>${k+1}</kbd><span>${esc(o.t)}</span></button>`).join("")}</div>
+      ${refsFor(q).length&&!/§|lagen\b|LOB/.test(q.o[0])?`<div id="hint"><button class="link" type="button" id="hint-btn">Ledtråd: visa lagrum</button></div>`:""}
       <div id="fb"></div></div>`;
+    const hb=document.getElementById("hint-btn");
+    if(hb)hb.onclick=()=>{hinted=true;document.getElementById("hint").innerHTML=refLinks(q,"Ledtråd, ger halva poängen:")};
     const btns=[...app.querySelectorAll(".opt")];
     function choose(k){
       if(answered)return;answered=true;const ok=order[k].ok;
       btns.forEach((b,j)=>{b.disabled=true;if(order[j].ok)b.classList.add("right");else if(j===k)b.classList.add("wrong")});
-      mark(q.id,ok);if(ok)right++;else missed.push({h:isCase?q.s:q.q,e:"Rätt svar: "+q.o[0]+". "+q.e});
+      mark(q.id,ok);if(ok){right++;xp+=hinted?5:10}else missed.push({h:isCase?q.s:q.q,e:"Rätt svar: "+q.o[0]+". "+q.e,x:q});
+      const h=document.getElementById("hint");if(h)h.remove();
       save();
-      document.getElementById("fb").innerHTML=`<div class="fb ${ok?"right":"wrong"}"><b>${ok?"Rätt":"Fel"}</b>${esc(q.e)}</div><div class="btnrow one" style="margin-top:12px"><button class="btn primary" type="button" id="next">${i+1<total?"Nästa":"Se resultat"}</button></div>`;
+      document.getElementById("fb").innerHTML=`<div class="fb ${ok?"right":"wrong"}"><b>${ok?"Rätt":"Fel"}</b>${esc(q.e)}${refLinks(q,"Läs i lagen")}</div><div class="btnrow one" style="margin-top:12px"><button class="btn primary" type="button" id="next">${i+1<total?"Nästa":"Se resultat"}</button></div>`;
       const nx=document.getElementById("next");nx.onclick=next;nx.focus();
     }
     btns.forEach((b,k)=>b.onclick=()=>choose(k));
     keyh=e=>{const k=parseInt(e.key,10);if(k>=1&&k<=order.length)choose(k-1)};
   }
-  function next(){i++;if(i>=total)result({title,score:right,of:total,xp:right*10,missed,again});else draw()}
+  function next(){i++;if(i>=total)result({title,score:right,of:total,xp,missed,again});else draw()}
   draw();
 }
 const quiz=()=>choice(all.q,8,"Quiz",false,quiz);
@@ -190,7 +204,7 @@ function tf(){
   function show(){st.className="state";st.textContent=pool[i].s}
   function ans(v){
     if(busy||left<=0)return;const q=pool[i],ok=q.v===v;busy=true;
-    mark(q.id,ok);if(ok)right++;else missed.push({h:q.s,e:(q.v?"Sant. ":"Falskt. ")+q.e});
+    mark(q.id,ok);if(ok)right++;else missed.push({h:q.s,e:(q.v?"Sant. ":"Falskt. ")+q.e,x:q});
     st.classList.add(ok?"right":"wrong");document.getElementById("tfn").textContent=right+" rätt";
     setTimeout(()=>{busy=false;i++;if(i>=pool.length){pool=shuffle(pool);i=0}if(left>0&&view==="tf")show()},ok?220:520);
   }
@@ -218,7 +232,7 @@ function match(){
     if(!sel||b.classList.contains("done"))return;
     if(b.dataset.d===sel){const t=app.querySelector(`[data-t="${sel}"]`);[t,b].forEach(x=>{x.classList.remove("sel");x.classList.add("done");x.disabled=true});sel=null;done++;
       if(done===set.length){set.forEach(c=>mark(c.id,!bad.has(c.id)));save();
-        result({title:"Para ihop",score:sec,of:null,unit:"sekunder, "+errs+" fel",xp:Math.max(10,60-errs*5),missed:set.filter(c=>bad.has(c.id)).map(c=>({h:c.t,e:c.d})),again:match})}}
+        result({title:"Para ihop",score:sec,of:null,unit:"sekunder, "+errs+" fel",xp:Math.max(10,60-errs*5),missed:set.filter(c=>bad.has(c.id)).map(c=>({h:c.t,e:c.d,x:c})),again:match})}}
     else{errs++;bad.add(sel);stat();b.classList.remove("shake");void b.offsetWidth;b.classList.add("shake")}
   });
 }
@@ -227,7 +241,7 @@ function match(){
 function result(r){
   clear();view="result";
   store.log.push({t:Date.now(),m:r.title,s:r.score,o:r.of,x:r.xp});save();meters();sync();
-  const rev=r.missed.length?`<h2>Det här kommer tillbaka</h2><div class="review">${r.missed.map(m=>`<article><b>${esc(m.h)}</b>${esc(m.e)}</article>`).join("")}</div>`:`<p class="muted">Inga fel den här rundan.</p>`;
+  const rev=r.missed.length?`<h2>Det här kommer tillbaka</h2><div class="review">${r.missed.map(m=>`<article><b>${esc(m.h)}</b>${esc(m.e)}${m.x?refLinks(m.x):""}</article>`).join("")}</div>`:`<p class="muted">Inga fel den här rundan.</p>`;
   app.innerHTML=`<div class="stage"><span class="eyebrow">${r.title} · klart</span>
     <div class="score">${r.score}${r.of!==null?`<small> / ${r.of}</small>`:""}</div>
     <p class="muted">${r.unit?r.unit+" · ":""}+${r.xp} poäng</p>
@@ -249,7 +263,7 @@ function stats(){
   const fmt=t=>{const d=new Date(t);return d.getDate()+"/"+(d.getMonth()+1)+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
   const recent=store.log.slice(-8).reverse().map(l=>`<article><span><b>${esc(l.m)}</b> · ${l.s}${l.o!=null?" / "+l.o:l.m==="Para ihop"?" s":" rätt"}</span><span>${fmt(l.t)}</span></article>`).join("");
   const hard=Object.keys(store.res).filter(id=>byId[id]&&store.res[id].w>0&&store.res[id].l===0).sort((a,b)=>store.res[b].w-store.res[a].w).slice(0,6)
-    .map(id=>`<article><span>${esc(byId[id].label)}</span><span>${store.res[id].w} fel</span></article>`).join("");
+    .map(id=>`<article class="hard"><div class="hard-row"><span>${esc(byId[id].label)}</span><span>${store.res[id].w} fel</span></div>${refLinks(byId[id])}</article>`).join("");
   app.innerHTML=`<div class="stage">
     <div class="bar-top"><button class="back" type="button" data-act="home">← Till start</button></div>
     <h1>Historik</h1>
