@@ -45,7 +45,7 @@ function merge(a,b){
 
 /* ---------- sync ---------- */
 let syncState={cls:"",msg:"Inte synkad än"};
-function setSync(cls,msg){syncState={cls,msg};const el=document.getElementById("sync-status");if(el){el.className="status "+cls;el.textContent=msg}}
+function setSync(cls,msg){syncState={cls,msg};const sb=document.getElementById("sync-btn");if(sb)sb.className="meter sync-btn "+cls;const el=document.getElementById("sync-status");if(el){el.className="status "+cls;el.textContent=msg}}
 async function rpc(fn,body){
   const r=await fetch(SB_URL+"/rest/v1/rpc/"+fn,{method:"POST",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+SB_KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});
   if(!r.ok)throw new Error("HTTP "+r.status);
@@ -109,6 +109,10 @@ function home(){
     <h1>Vad vill du nöta idag?</h1>
     <p class="muted">Välj vilka tentor du övar inför. Det du svarar fel på kommer tillbaka först nästa runda.</p>
     <div class="chips" role="group" aria-label="Områden">${chips}</div>
+  </section>
+  <section class="synccard" aria-label="Synk">
+    <p><b>Plugga på flera enheter?</b> <span class="muted">Skriv in din synkkod på datorn och mobilen så följer framstegen med.</span></p>
+    <button class="btn primary" type="button" data-act="syncpage">Synka eller ange kod</button>
   </section>
   <section class="modes" aria-label="Övningar">
     <button class="mode" type="button" data-act="cards"><i>10 kort</i><b>Begreppskort</b><span>Vänd kortet och säg ärligt om du kunde det. ${cnt(all.c)} begrepp.</span></button>
@@ -273,7 +277,7 @@ function stats(){
     <div class="list">${recent||`<p class="muted">Inga rundor än. Spela en så dyker den upp här.</p>`}</div>
     <h2>Svårast just nu</h2>
     <div class="list">${hard||`<p class="muted">Inget du senast svarade fel på.</p>`}</div>
-    <h2>Synk mellan enheter</h2>
+    <h2 id="sync-sec">Synk mellan enheter</h2>
     <p class="muted">Framstegen sparas på servern under din synkkod. Skriv in samma kod på en annan enhet för att fortsätta där. Koden är din nyckel, så dela den inte.</p>
     <div class="codebox"><code id="code">${esc(store.code)}</code><button class="btn" type="button" id="copy">Kopiera</button></div>
     <p class="status ${syncState.cls}" id="sync-status">${esc(syncState.msg)}</p>
@@ -298,12 +302,14 @@ function stats(){
   };
 }
 
-const routes={home,cards,quiz,cases,match,tf,stats};
+function syncpage(){stats();const el=document.getElementById("sync-sec");if(el)el.scrollIntoView({block:"start"});const i=document.getElementById("code-in");if(i)i.focus({preventScroll:true})}
+const routes={home,cards,quiz,cases,match,tf,stats,syncpage};
 app.addEventListener("click",e=>{
-  const a=e.target.closest("[data-act]");if(a){routes[a.dataset.act]();window.scrollTo(0,0);return}
+  const a=e.target.closest("[data-act]");if(a){if(a.dataset.act!=="syncpage")window.scrollTo(0,0);routes[a.dataset.act]();return}
   const c=e.target.closest("[data-area]");if(c){const k=c.dataset.area,i=store.areas.indexOf(k);if(i>=0)store.areas.splice(i,1);else store.areas.push(k);save();home()}
 });
 document.getElementById("home-btn").onclick=home;
+document.getElementById("sync-btn").onclick=syncpage;
 home();
 sync().then(()=>{if(view==="home")home();else if(view==="stats")stats()});
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("/sw.js").catch(()=>{});
